@@ -23,5 +23,5 @@ dist-ssr
 
 
 #yarn
-.yarn
+.yarn/*
 !.yarn/releases
