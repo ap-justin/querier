@@ -30,6 +30,8 @@ export default function App() {
   const [msg, setMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  console.log({ paths, queryPath, encodedQuery });
+
   //view shared query
   useEffect(() => {
     (async () => {
