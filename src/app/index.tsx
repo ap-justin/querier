@@ -71,7 +71,7 @@ export default function App() {
       network,
     };
     await navigator.clipboard.writeText(
-      `${window.location.origin}/querier/${window.btoa(
+      `${window.location.origin}/querier/#/${window.btoa(
         JSON.stringify(encodedQuery)
       )}`
     );
