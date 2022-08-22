@@ -1,56 +1,82 @@
-import JSONEditor from "jsoneditor";
 import "jsoneditor/dist/jsoneditor.min.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import Editor from "./Editor";
 
 const mainnetUrl = "https://lcd-juno.itastakers.com";
 const testnetUrl = "https://lcd.uni.juno.deuslabs.fi";
 
-type Query = {
-  address: string;
+type Network = "testnet" | "mainnet";
+type EncodedQuery = {
+  network: Network;
   msg: string;
+  contract: string;
 };
 
-type Queries = {
-  queries: Query[];
-};
-
-const Key = "__queries";
-const queries = JSON.parse(localStorage.getItem(Key) || "{}") as Queries;
+let encodedQuery: EncodedQuery;
+let queryString: string = "";
+const paths = window.location.pathname.split("/");
+const queryPath = paths[paths.length - 1];
+try {
+  encodedQuery = JSON.parse(window.atob(queryPath));
+  queryString = window.atob(encodedQuery.msg);
+} catch (err) {
+  encodedQuery = { network: "testnet", msg: "", contract: "" };
+}
 
 export default function App() {
-  const [contract, setContract] = useState("");
-  const [text, setText] = useState("");
-  const [isError, setIsError] = useState(false);
+  const [contract, setContract] = useState(encodedQuery.contract);
+  const [network, setNetwork] = useState<Network>(encodedQuery.network);
   const [result, setResult] = useState<object>({});
+  const [msg, setMsg] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const divRef = useRef<HTMLDivElement | null>(null);
-  const editoRef = useRef<JSONEditor | null>(null);
-
+  //view shared query
   useEffect(() => {
-    if (editoRef.current) return;
-    editoRef.current = new JSONEditor(divRef.current as HTMLElement, {
-      onValidationError(errors) {
-        setIsError(errors.length > 0);
-      },
-      mode: "code",
-      statusBar: false,
-      mainMenuBar: false,
-      onChangeText(json) {
-        setText(json);
-      },
-    });
+    (async () => {
+      try {
+        await query("", network, encodedQuery.msg);
+      } catch (err) {
+        console.log(err);
+      }
+    })();
   }, []);
 
-  async function query(isTest?: true) {
-    const msg = window.btoa(JSON.stringify(JSON.parse(text)));
-    setResult({});
-    const data = await fetch(
-      `${
-        isTest ? testnetUrl : mainnetUrl
-      }/cosmwasm/wasm/v1/contract/${contract}/smart/${msg}`
-    ).then((x) => x.json());
-    setResult(data);
+  async function query(text: string, _network: Network, presetMsg?: string) {
+    setIsLoading(true);
+    try {
+      const msg = presetMsg || window.btoa(JSON.stringify(JSON.parse(text)));
+      setResult({});
+      setNetwork(_network); //set network state for query copying
+      setMsg(msg); //set query text for copying
+      const data = await fetch(
+        `${
+          _network === "testnet" ? testnetUrl : mainnetUrl
+        }/cosmwasm/wasm/v1/contract/${contract}/smart/${msg}`
+      ).then((x) => x.json());
+      setResult(data);
+    } catch (err) {
+      setResult({});
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   }
+
+  async function copyQuery() {
+    const encodedQuery: EncodedQuery = {
+      contract,
+      msg,
+      network,
+    };
+    await navigator.clipboard.writeText(
+      `${window.location.origin}/querier/${window.btoa(
+        JSON.stringify(encodedQuery)
+      )}`
+    );
+    alert("query copied to clipboard");
+  }
+
+  const isThereResult = Object.entries(result).length > 0;
 
   return (
     <div className="grid w-full max-w-lg content-start justify-self-center">
@@ -62,29 +88,41 @@ export default function App() {
         className="mt-2 border border-zinc-50/10 bg-transparent p-2 font-mono focus:outline-none"
       />
       <label className="mt-8">query</label>
-      <div ref={divRef} className="mt-4" style={{ margin: "1rem" }} />
+      <Editor initialQuery={queryString}>
+        {(text, isError) => (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => query(text, "mainnet")}
+              className="bg-sky-400 px-4 py-2 text-sm uppercase disabled:bg-gray-300"
+              disabled={isError || isLoading}
+            >
+              query mainnet
+            </button>
+            <button
+              type="button"
+              onClick={() => query(text, "testnet")}
+              className="bg-sky-400 px-4 py-2 text-sm uppercase disabled:bg-gray-300"
+              disabled={isError || isLoading}
+            >
+              {isLoading ? "loading.." : "Query testnet"}
+            </button>
+          </div>
+        )}
+      </Editor>
 
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => query()}
-          className="bg-sky-400 px-4 py-2 text-sm uppercase disabled:bg-gray-300"
-          disabled={isError}
-        >
-          query mainnet
-        </button>
-        <button
-          type="button"
-          onClick={() => query(true)}
-          className="bg-sky-400 px-4 py-2 text-sm uppercase disabled:bg-gray-300"
-          disabled={isError}
-        >
-          query testnet
-        </button>
-      </div>
       <code className="overflow-x-auto whitespace-pre font-mono">
         {JSON.stringify(result, null, 2)}
       </code>
+
+      {isThereResult && (
+        <button
+          onClick={copyQuery}
+          className="mt-4 rounded-md rounded-sm bg-emerald-500 px-4 py-2 text-sm uppercase hover:bg-emerald-400 active:bg-emerald-600"
+        >
+          copy query
+        </button>
+      )}
     </div>
   );
 }
