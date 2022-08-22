@@ -68,7 +68,7 @@ export default function App() {
         <button
           type="button"
           onClick={() => query()}
-          className="bg-sky-400 px-4 py-2 text-sm uppercase"
+          className="bg-sky-400 px-4 py-2 text-sm uppercase disabled:bg-gray-300"
           disabled={isError}
         >
           query mainnet
@@ -76,7 +76,7 @@ export default function App() {
         <button
           type="button"
           onClick={() => query(true)}
-          className="bg-sky-400 px-4 py-2 text-sm uppercase"
+          className="bg-sky-400 px-4 py-2 text-sm uppercase disabled:bg-gray-300"
           disabled={isError}
         >
           query testnet
