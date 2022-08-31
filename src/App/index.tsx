@@ -2,6 +2,7 @@ import "jsoneditor/dist/jsoneditor.min.css";
 import { useEffect, useState } from "react";
 import Editor from "./Editor";
 
+const QUERY_PARAM = "query";
 const mainnetUrl = "https://lcd-juno.itastakers.com";
 const testnetUrl = "https://lcd.uni.juno.deuslabs.fi";
 
@@ -14,23 +15,25 @@ type EncodedQuery = {
 
 let encodedQuery: EncodedQuery;
 let queryString: string = "";
-const paths = window.location.pathname.split("/");
-const queryPath = paths[paths.length - 1];
+
+const searchString = window.location.search;
+const urlParams = new URLSearchParams(searchString);
+const encodedQueryString = urlParams.get(QUERY_PARAM) || "";
+
 try {
-  encodedQuery = JSON.parse(window.atob(queryPath));
+  encodedQuery = JSON.parse(window.atob(encodedQueryString));
   queryString = window.atob(encodedQuery.msg);
 } catch (err) {
   encodedQuery = { network: "testnet", msg: "", contract: "" };
 }
 
+console.log("08311534");
 export default function App() {
   const [contract, setContract] = useState(encodedQuery.contract);
   const [network, setNetwork] = useState<Network>(encodedQuery.network);
   const [result, setResult] = useState<object>({});
   const [msg, setMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  console.log({ paths, queryPath, encodedQuery });
 
   //view shared query
   useEffect(() => {
@@ -71,7 +74,7 @@ export default function App() {
       network,
     };
     await navigator.clipboard.writeText(
-      `${window.location.origin}/querier/${window.btoa(
+      `${window.location.origin}/querier/?${QUERY_PARAM}=${window.btoa(
         JSON.stringify(encodedQuery)
       )}`
     );
