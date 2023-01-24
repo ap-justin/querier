@@ -4,7 +4,7 @@ import Editor from "./Editor";
 
 const QUERY_PARAM = "query";
 const mainnetUrl = "https://lcd-juno.itastakers.com";
-const testnetUrl = "https://lcd.uni.juno.deuslabs.fi";
+const testnetUrl = "https://api.uni.junonetwork.io";
 
 type Network = "testnet" | "mainnet";
 type EncodedQuery = {
